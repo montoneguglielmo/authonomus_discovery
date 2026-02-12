@@ -16,7 +16,7 @@ class RandomMovementOnTable():
             action = np.zeros(self.action_shape)
             self.count_step += 1
             
-            if np.mod(self.count_step, 200) == 0:
+            if np.mod(self.count_step, 100) == 0:
                 self.target_pos = np.array([
                     np.random.uniform(-0.7, 0.7),
                     np.random.uniform(-0.7, 0.7),
