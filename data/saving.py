@@ -13,7 +13,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        
+
         logging.FileHandler('logs', mode='a'),
         logging.StreamHandler()
     ]
@@ -31,7 +31,7 @@ def save_video(frames, filename="simulation.mp4", fps=20, save_dir="videos_2"):
         imageio.mimsave(filepath, frames, fps=fps)
         print(f"Video saved: {filepath} ({len(frames)} frames)")
     else:
-        log.warning(f"⚠️ No frames to save. File not created: {filepath}")
+        log.warning(f"No frames to save. File not created: {filepath}")
 
 def to_png_bytes(img_np):
     img = Image.fromarray(img_np.astype(np.uint8))
@@ -51,10 +51,10 @@ class EpisodeParquetWriter:
         self.frames_wrist = []
 
     def add_step(self, state, action, task_index, frame_agent, frame_wrist):
-        
+
         self.frames_agent.append(frame_agent)
         self.frames_wrist.append(frame_wrist)
-        
+
         self.rows.append({
             "observation.state": state.tolist(),
             "action": action.tolist(),
@@ -64,7 +64,7 @@ class EpisodeParquetWriter:
             "index": len(self.rows)-1,
             "task_index": int(task_index)
         })
-        
+
 
 
     def save_episode(self):
@@ -80,12 +80,12 @@ class EpisodeParquetWriter:
         # clear buffer for next episode
         self.rows = []
         self.episode_index += 1
-        
+
         save_video(self.frames_agent, f"episode_{self.episode_index:06d}.mp4", fps=30, save_dir=f"{self.video_dir}/observation.images.image")
         save_video(self.frames_wrist, f"episode_{self.episode_index:06d}.mp4", fps=30, save_dir=f"{self.video_dir}/observation.images.wrist")
-        
+
     def return_episode_index(self):
         return self.episode_index
-    
+
     def return_video_dir(self):
         return self.video_dir

@@ -1,30 +1,14 @@
 """
-Utility functions for creating and managing robosuite environments.
+Factory functions for creating random robosuite objects and placement samplers.
 """
+
 import numpy as np
 import random
-import robosuite as suite
 from robosuite.models.objects import (
     BoxObject, CylinderObject, BallObject,
     CapsuleObject
 )
 from robosuite.utils.placement_samplers import UniformRandomSampler
-from robosuite import load_composite_controller_config
-from custom_env import RandomObjectsEnv
-import math
-
-
-# ========= Quaternion to Axis-Angle =========
-def quat2axisangle(quat):
-    if quat[3] > 1.0:
-        quat[3] = 1.0
-    elif quat[3] < -1.0:
-        quat[3] = -1.0
-    den = np.sqrt(1.0 - quat[3] * quat[3])
-    if math.isclose(den, 0.0):
-        return np.zeros(3)
-    return (quat[:3] * 2.0 * math.acos(quat[3])) / den
-
 
 
 def create_random_objects(
@@ -120,76 +104,3 @@ def create_random_objects(
     )
 
     return selected_objects, placement_initializer
-
-    
-
-
-if __name__ == '__main__':
-    import imageio
-
-
-    selected_objects, placement_initializer = create_random_objects()
-
-    # Load default controller config for the robot
-    controller_config = load_composite_controller_config(controller=None, robot="Panda")
-
-    # Create custom environment with our objects
-    env = RandomObjectsEnv(
-        robots="Panda",
-        custom_objects=selected_objects,  # Pass our custom objects!
-        has_renderer=False,
-        has_offscreen_renderer=True,
-        use_camera_obs=True,
-        camera_names="frontview",
-        camera_heights=512,
-        camera_widths=512,
-        placement_initializer=placement_initializer,
-        controller_configs=controller_config,
-    )
-
-    # Reset environment
-    print("\nResetting environment...")
-    obs = env.reset()
-
-    # Let objects settle on the table (physics settling)
-    print("Letting objects settle on table...")
-    for _ in range(20):
-        zero_action = np.zeros(env.action_spec[0].shape)
-        obs, _, _, _ = env.step(zero_action)
-
-    print("\nObject positions (world frame):")
-    for obj in selected_objects:
-        body_id = env.sim.model.body_name2id(obj.root_body)
-        pos = env.sim.data.body_xpos[body_id]
-        print(f"{obj.name}: {pos}")
-
-    # Run random actions for a few steps
-    print("\nRunning robot with random actions...")
-    frames = []
-    num_steps = 200
-
-    for i in range(num_steps):
-        # Generate random action
-        action = np.random.randn(*env.action_spec[0].shape) * 0.05
-        obs, reward, done, info = env.step(action)
-
-        # Grab camera frame if available
-        if "frontview_image" in obs:
-            frame = obs["frontview_image"]
-            frame = np.flip(frame, axis=0)
-            frames.append(frame)
-
-        # Print progress every 50 steps
-        if (i + 1) % 50 == 0:
-            print(f"  Step {i + 1}/{num_steps}")
-
-    env.close()
-    print("\nEnvironment closed.")
-
-    # Save video if frames were captured
-    if frames:
-        output_file = "random_env_test.mp4"
-        imageio.mimsave(output_file, frames, fps=20)
-        print(f"\n✅ Test complete! Video saved to {output_file}")
-    else:
-        print("\n✅ Test complete! (No video frames captured)")
