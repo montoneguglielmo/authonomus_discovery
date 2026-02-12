@@ -24,7 +24,7 @@ class RandomObjectsEnv(ManipulationEnv):
         controller_configs=None,
         gripper_types="default",
         initialization_noise="default",
-        table_full_size=(1.5, 1.5, 0.05),
+        table_full_size=(0.8, 0.8, 0.05),
         table_friction=(1.0, 5e-3, 1e-4),
         use_camera_obs=True,
         use_object_obs=True,

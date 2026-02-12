@@ -143,6 +143,12 @@ if __name__ == '__main__':
         zero_action = np.zeros(env.action_spec[0].shape)
         obs, _, _, _ = env.step(zero_action)
 
+    print("\nObject positions (world frame):")
+    for obj in selected_objects:
+        body_id = env.sim.model.body_name2id(obj.root_body)
+        pos = env.sim.data.body_xpos[body_id]
+        print(f"{obj.name}: {pos}")
+
     # Run random actions for a few steps
     print("\nRunning robot with random actions...")
     frames = []
