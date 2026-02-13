@@ -49,6 +49,12 @@ class PickAndLift():
             action[-1] = 1.0  # Keep gripper close
         return action
 
+    def reset(self, selected_objects):
+        """Reset state machine and pick a new target object."""
+        self.phase = "reach"
+        self.gripper_count = 0
+        self.select_object(selected_objects)
+
     def select_object(self, object_list):
         obj = random.choice(object_list)
         self.obj_to_pick = obj

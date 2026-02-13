@@ -77,12 +77,14 @@ class EpisodeParquetWriter:
         filename = f"episode_{self.episode_index:06d}.parquet"
         pq.write_table(table, os.path.join(self.chunk_dir, filename))
 
-        # clear buffer for next episode
-        self.rows = []
-        self.episode_index += 1
-
         save_video(self.frames_agent, f"episode_{self.episode_index:06d}.mp4", fps=30, save_dir=f"{self.video_dir}/observation.images.image")
         save_video(self.frames_wrist, f"episode_{self.episode_index:06d}.mp4", fps=30, save_dir=f"{self.video_dir}/observation.images.wrist")
+
+        # clear buffers for next episode
+        self.rows = []
+        self.frames_agent = []
+        self.frames_wrist = []
+        self.episode_index += 1
 
     def return_episode_index(self):
         return self.episode_index

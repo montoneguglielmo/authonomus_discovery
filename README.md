@@ -40,6 +40,13 @@ pip install robosuite numpy pandas pyarrow opencv-python imageio imageio-ffmpeg 
 ### Collect with an automated policy
 
 ```bash
+# Full randomization (default): each episode gets random objects and a random policy
+python scripts/collect_policy.py \
+  --output_dir data/output \
+  --num_episodes 10 \
+  --steps_per_episode 500
+
+# Use a specific policy (objects are created once, positions randomize each episode)
 python scripts/collect_policy.py \
   --output_dir data/output \
   --policy pick_and_lift \
@@ -47,7 +54,7 @@ python scripts/collect_policy.py \
   --steps_per_episode 500
 ```
 
-Available policies: `random`, `pick_and_lift`.
+Available `--policy` options: `all` (default), `random`, `pick_and_lift`. In `all` mode, both the object scene and the policy are randomized per episode, and the `task_index` column in the parquet records which policy was used (0 = random, 1 = pick_and_lift).
 
 ### Collect via keyboard teleoperation
 
