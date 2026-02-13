@@ -3,8 +3,25 @@ Shared data collection loop used by both policy-driven and teleoperation scripts
 """
 
 import time
+import cv2
 import numpy as np
 from utils.transforms import quat2axisangle
+
+
+_camera_window_initialized = False
+
+
+def _show_camera_feeds(obs):
+    """Display wrist camera in an OpenCV window."""
+    global _camera_window_initialized
+    wrist = np.rot90(obs["robot0_eye_in_hand_image"], 2)
+    wrist_bgr = cv2.cvtColor(wrist, cv2.COLOR_RGB2BGR)
+    if not _camera_window_initialized:
+        cv2.namedWindow("Wrist Camera", cv2.WINDOW_AUTOSIZE)
+        cv2.moveWindow("Wrist Camera", 1300, 0)
+        _camera_window_initialized = True
+    cv2.imshow("Wrist Camera", wrist_bgr)
+    cv2.waitKey(1)
 
 
 class EpisodeReset(Exception):
@@ -63,6 +80,7 @@ def collect_episode(env, action_source, writer, task_id=0, num_steps=500,
         obs, _, _, _ = env.step(zero_action)
         if render:
             env.render()
+            _show_camera_feeds(obs)
 
     target_dt = 1.0 / control_freq
 
@@ -75,6 +93,7 @@ def collect_episode(env, action_source, writer, task_id=0, num_steps=500,
 
             if render:
                 env.render()
+                _show_camera_feeds(obs)
 
             state = np.concatenate([
                 obs["robot0_eef_pos"],
@@ -99,5 +118,10 @@ def collect_episode(env, action_source, writer, task_id=0, num_steps=500,
 
     except EpisodeReset:
         print("Episode ended early by user reset.")
+
+    if render:
+        global _camera_window_initialized
+        _camera_window_initialized = False
+        cv2.destroyAllWindows()
 
     writer.save_episode()
