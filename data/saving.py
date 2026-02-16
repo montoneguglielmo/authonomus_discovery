@@ -50,12 +50,21 @@ class EpisodeParquetWriter:
         self.frames_agent = []
         self.frames_wrist = []
 
+    def set_episode_metadata(self, metadata):
+        """Set per-episode metadata that will be merged into every row.
+
+        Args:
+            metadata: dict of column_name -> value pairs.  Values can be
+                      scalars or lists (stored as-is in parquet).
+        """
+        self._episode_metadata = dict(metadata) if metadata else {}
+
     def add_step(self, state, action, task_index, frame_agent, frame_wrist):
 
         self.frames_agent.append(frame_agent)
         self.frames_wrist.append(frame_wrist)
 
-        self.rows.append({
+        row = {
             "observation.state": state.tolist(),
             "action": action.tolist(),
             "timestamp": float(len(self.frames_agent) * 0.05),
@@ -63,7 +72,10 @@ class EpisodeParquetWriter:
             "episode_index": int(self.episode_index),
             "index": len(self.rows)-1,
             "task_index": int(task_index)
-        })
+        }
+        if hasattr(self, "_episode_metadata"):
+            row.update(self._episode_metadata)
+        self.rows.append(row)
 
 
 
@@ -84,6 +96,7 @@ class EpisodeParquetWriter:
         self.rows = []
         self.frames_agent = []
         self.frames_wrist = []
+        self._episode_metadata = {}
         self.episode_index += 1
 
     def return_episode_index(self):

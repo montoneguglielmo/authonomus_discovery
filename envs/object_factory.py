@@ -98,6 +98,23 @@ def make_capsule(name):
     )
 
 
+def extract_object_metadata(obj):
+    """Extract physical properties from a robosuite object as a flat dict.
+
+    The object shape is parsed from the object name (e.g. "box_0" -> "box").
+    """
+    shape = obj.name.rsplit("_", 1)[0]
+    return {
+        "object_shape": shape,
+        "object_size": list(obj.size),
+        "object_density": float(obj.density),
+        "object_friction": list(obj.friction),
+        "object_rgba": list(obj.rgba),
+        "object_solref": list(obj.solref),
+        "object_solimp": list(obj.solimp),
+    }
+
+
 def create_random_objects(
     min_objects=1,
     max_objects=5,
