@@ -2,6 +2,7 @@
 Factory functions for creating random robosuite objects and placement samplers.
 """
 
+import math
 import numpy as np
 import random
 from robosuite.models.objects import (
@@ -9,6 +10,92 @@ from robosuite.models.objects import (
     CapsuleObject
 )
 from robosuite.utils.placement_samplers import UniformRandomSampler
+
+
+def restitution_to_solref(restitution, mass):
+    """Convert coefficient of restitution (0-1) to MuJoCo solref (negative/direct format).
+
+    Uses damped spring model: negative solref values are interpreted by MuJoCo
+    as direct -stiffness, -damping. The damping is derived from energy conservation:
+        b = 2 * sqrt(k * m) * ln(e) / pi
+    """
+    K = np.random.uniform(2e3, 2e5)
+    zeta = np.random.uniform(0.05, 1.5)
+    B = 2 * zeta * np.sqrt(K * mass)
+    return [-K, -B]
+
+
+def random_contact_params(density, volume):
+    """Generate random friction, solref (from restitution), and solimp parameters."""
+    friction = [
+        np.random.uniform(0.3, 2.0),    # sliding friction
+        np.random.uniform(0.001, 0.02),  # torsional friction
+        np.random.uniform(0.0001, 0.002) # rolling friction
+    ]
+    restitution = np.random.uniform(0.0, 0.9)  # coefficient of restitution
+    mass = density * volume
+    solref = restitution_to_solref(restitution, mass)
+    solimp = [
+        np.random.uniform(0.7, 0.95),    # dmin
+        np.random.uniform(0.95, 0.9999),   # dmax
+        np.random.uniform(0.0005, 0.02)   # width
+    ]
+    return friction, solref, solimp
+
+
+def make_box(name):
+    """Create a BoxObject with randomized size, density, and contact parameters."""
+    size = np.random.uniform([0.02, 0.02, 0.02], [0.05, 0.05, 0.08])
+    density = np.random.uniform(500, 3000)
+    volume = 8.0 * size[0] * size[1] * size[2]  # box volume = (2w)(2d)(2h)
+    friction, solref, solimp = random_contact_params(density, volume)
+    return BoxObject(
+        name=name, size=size,
+        rgba=np.random.uniform([0.2, 0.2, 0.2, 1], [0.9, 0.9, 0.9, 1]),
+        density=density, friction=friction, solref=solref, solimp=solimp,
+    )
+
+
+def make_cylinder(name):
+    """Create a CylinderObject with randomized size, density, and contact parameters."""
+    radius = np.random.uniform(0.015, 0.03)
+    half_height = np.random.uniform(0.04, 0.08)
+    density = np.random.uniform(500, 3000)
+    volume = math.pi * radius ** 2 * (2.0 * half_height)
+    friction, solref, solimp = random_contact_params(density, volume)
+    return CylinderObject(
+        name=name, size=[radius, half_height],
+        rgba=np.random.uniform([0.2, 0.2, 0.2, 1], [0.9, 0.9, 0.9, 1]),
+        density=density, friction=friction, solref=solref, solimp=solimp,
+    )
+
+
+def make_ball(name):
+    """Create a BallObject with randomized size, density, and contact parameters."""
+    radius = np.random.uniform(0.015, 0.035)
+    density = np.random.uniform(500, 3000)
+    volume = (4.0 / 3.0) * math.pi * radius ** 3
+    friction, solref, solimp = random_contact_params(density, volume)
+    return BallObject(
+        name=name, size=[radius],
+        rgba=np.random.uniform([0.2, 0.2, 0.2, 1], [0.9, 0.9, 0.9, 1]),
+        density=density, friction=friction, solref=solref, solimp=solimp,
+    )
+
+
+def make_capsule(name):
+    """Create a CapsuleObject with randomized size, density, and contact parameters."""
+    radius = np.random.uniform(0.015, 0.025)
+    half_height = np.random.uniform(0.04, 0.08)
+    density = np.random.uniform(500, 3000)
+    # capsule = cylinder + two hemispheres
+    volume = math.pi * radius ** 2 * (2.0 * half_height) + (4.0 / 3.0) * math.pi * radius ** 3
+    friction, solref, solimp = random_contact_params(density, volume)
+    return CapsuleObject(
+        name=name, size=[radius, half_height],
+        rgba=np.random.uniform([0.2, 0.2, 0.2, 1], [0.9, 0.9, 0.9, 1]),
+        density=density, friction=friction, solref=solref, solimp=solimp,
+    )
 
 
 def create_random_objects(
@@ -47,30 +134,10 @@ def create_random_objects(
 
     # Available object types with their creation functions
     object_types = [
-        ("box", lambda name: BoxObject(
-            name=name,
-            size=np.random.uniform([0.02, 0.02, 0.02], [0.05, 0.05, 0.08]),
-            rgba=np.random.uniform([0.2, 0.2, 0.2, 1], [0.9, 0.9, 0.9, 1]),
-            density=np.random.uniform(500, 3000)  # Random density (kg/m³)
-        )),
-        ("cylinder", lambda name: CylinderObject(
-            name=name,
-            size=[np.random.uniform(0.015, 0.03), np.random.uniform(0.04, 0.08)],
-            rgba=np.random.uniform([0.2, 0.2, 0.2, 1], [0.9, 0.9, 0.9, 1]),
-            density=np.random.uniform(500, 3000)
-        )),
-        ("ball", lambda name: BallObject(
-            name=name,
-            size=[np.random.uniform(0.015, 0.035)],
-            rgba=np.random.uniform([0.2, 0.2, 0.2, 1], [0.9, 0.9, 0.9, 1]),
-            density=np.random.uniform(500, 3000)
-        )),
-        ("capsule", lambda name: CapsuleObject(
-            name=name,
-            size=[np.random.uniform(0.015, 0.025), np.random.uniform(0.04, 0.08)],
-            rgba=np.random.uniform([0.2, 0.2, 0.2, 1], [0.9, 0.9, 0.9, 1]),
-            density=np.random.uniform(500, 3000)
-        )),
+        ("box", make_box),
+        ("cylinder", make_cylinder),
+        ("ball", make_ball),
+        ("capsule", make_capsule),
     ]
 
     # Randomly select objects
