@@ -1,2 +1,3 @@
 from policies.random_movement import RandomMovementOnTable
 from policies.pick_and_lift import PickAndLift
+from policies.pick_and_lift_v2 import PickAndLiftV2
