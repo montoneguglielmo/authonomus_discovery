@@ -6,7 +6,8 @@ A robotics data collection framework for gathering manipulation trajectories in 
 
 ```
 scripts/          # Entry points for data collection
-  collect_policy.py    # Collect with automated policies (headless)
+  collect_policy.py    # Collect training data with automated policies (headless)
+  collect_test.py      # Collect test data: 1 object per episode + metadata
   collect_teleop.py    # Collect via keyboard teleoperation
 
 envs/             # Custom robosuite environments
@@ -55,6 +56,19 @@ python scripts/collect_policy.py \
 ```
 
 Available `--policy` options: `all` (default), `random`, `pick_and_lift`. In `all` mode, both the object scene and the policy are randomized per episode, and the `task_index` column in the parquet records which policy was used (0 = random, 1 = pick_and_lift).
+
+### Collect a test dataset
+
+Each episode places a single random object on the table, picks a random policy, and records full object metadata (shape, size, density, friction, etc.) alongside the trajectory.
+
+```bash
+python scripts/collect_test.py \
+  --output_dir data/test \
+  --num_episodes 20 \
+  --steps_per_episode 500
+```
+
+In addition to the standard columns, the test parquet files include: `object_shape`, `object_size`, `object_density`, `object_friction`, `object_rgba`, `object_solref`, `object_solimp`, and `policy_name`.
 
 ### Collect via keyboard teleoperation
 
