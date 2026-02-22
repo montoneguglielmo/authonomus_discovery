@@ -95,10 +95,12 @@ def collect_episode(env, action_source, writer, task_id=0, num_steps=500,
                 env.render()
                 _show_camera_feeds(obs)
 
+            touch = env._get_touch_sensor_data() if hasattr(env, "_get_touch_sensor_data") else np.zeros(3)
             state = np.concatenate([
                 obs["robot0_eef_pos"],
                 quat2axisangle(obs["robot0_eef_quat"]),
-                obs["robot0_gripper_qpos"]
+                obs["robot0_gripper_qpos"],
+                touch,                              # [thumb, index, pinky] normal force (N)
             ])
 
             writer.add_step(

@@ -9,6 +9,7 @@ scripts/          # Entry points for data collection
   collect_policy.py    # Collect training data with automated policies (headless)
   collect_test.py      # Collect test data: 1 object per episode + metadata
   collect_teleop.py    # Collect via keyboard teleoperation
+  evaluate_policy.py   # Evaluate a policy over N episodes with metrics and optional video/log output
 
 envs/             # Custom robosuite environments
   random_objects_env.py  # Table env with randomized objects
@@ -17,6 +18,7 @@ envs/             # Custom robosuite environments
 policies/         # Manipulation policies
   random_movement.py     # Random exploration on the table
   pick_and_lift.py       # State-machine pick-and-lift
+  pick_and_lift_v2.py    # Improved pick-and-lift with hover, contact detection
 
 data/             # Data collection and persistence
   collection.py          # Episode collection loop (policy + teleop)
@@ -69,6 +71,40 @@ python scripts/collect_test.py \
 ```
 
 In addition to the standard columns, the test parquet files include: `object_shape`, `object_size`, `object_density`, `object_friction`, `object_rgba`, `object_solref`, `object_solimp`, and `policy_name`.
+
+### Evaluate a policy
+
+Run a policy for N episodes and compute success metrics. Optionally save per-episode videos and CSV logs, organised into `success/` and `failure/` subdirectories.
+
+```bash
+# Headless evaluation (metrics only)
+python scripts/evaluate_policy.py \
+  --policy pick_and_lift_v2 \
+  --num_episodes 20
+
+# With video and log output
+python scripts/evaluate_policy.py \
+  --policy pick_and_lift_v2 \
+  --num_episodes 20 \
+  --video_dir eval_out/pick_and_lift_v2
+```
+
+**Options:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--policy` | `pick_and_lift_v2` | `random`, `pick_and_lift`, `pick_and_lift_v2` |
+| `--num_episodes` | `10` | Number of episodes |
+| `--steps_per_episode` | `500` | Simulation steps per episode |
+| `--metric` | `object_above_table` | Metric to compute |
+| `--lift_threshold` | `0.15` | Metres above table surface to count as lifted |
+| `--video_dir` | *(none)* | If set, saves videos + CSV logs to `<dir>/success/` and `<dir>/failure/` |
+
+When `--video_dir` is provided, each episode produces:
+- `episode_NNNNNN.mp4` — frontview video at 20 fps
+- `episode_NNNNNN.csv` — robot state + touch sensors + object positions sampled at 1 Hz
+
+CSV columns: `step`, `time_s`, `eef_x/y/z`, `eef_qx/qy/qz/qw`, `gripper_qpos`, `touch_thumb/index/pinky`, `obj_<name>_x/y/z`.
 
 ### Collect via keyboard teleoperation
 

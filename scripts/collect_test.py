@@ -22,6 +22,7 @@ AVAILABLE_POLICIES = list(POLICY_TASK_IDS.keys())
 def create_env(selected_objects, placement_initializer, controller_config):
     return RandomObjectsEnv(
         robots="Jaco",
+        gripper_types="JacoThreeFingerTouchGripper",
         custom_objects=selected_objects,
         has_renderer=False,
         has_offscreen_renderer=True,

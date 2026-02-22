@@ -8,6 +8,8 @@ from robosuite.models.arenas import TableArena
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.observables import Observable, sensor
 
+import models.grippers  # noqa: F401 - registers JacoThreeFingerTouchGripper
+
 
 class RandomObjectsEnv(ManipulationEnv):
     """
@@ -196,6 +198,25 @@ class RandomObjectsEnv(ManipulationEnv):
                     )
 
         return observables
+
+    def _get_touch_sensor_data(self):
+        """
+        Return per-finger touch forces as a 3-element array [thumb, index, pinky].
+
+        Searches sim.model.sensor_names by suffix to locate the touch sensors
+        injected by JacoThreeFingerTouchGripper, then reads from sensordata using
+        the cumulative sensor_dim offset. Returns zeros if sensors are not present
+        (e.g. when using the original gripper without touch sensors).
+        """
+        result = np.zeros(3)
+        finger_keys = ["touch_thumb", "touch_index", "touch_pinky"]
+        for i, key in enumerate(finger_keys):
+            matched = [n for n in self.sim.model.sensor_names if n.endswith(key)]
+            if matched:
+                sid = self.sim.model.sensor_name2id(matched[0])
+                offset = int(np.sum(self.sim.model.sensor_dim[:sid]))
+                result[i] = self.sim.data.sensordata[offset]
+        return result
 
     def _check_success(self):
         """

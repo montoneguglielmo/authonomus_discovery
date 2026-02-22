@@ -2,11 +2,26 @@ import numpy as np
 import robosuite as suite
 import imageio
 
+import models.grippers  # noqa: F401 - registers JacoThreeFingerTouchGripper
+
+
+def _get_touch(sim):
+    """Read per-finger touch forces [thumb, index, pinky] in N."""
+    result = np.zeros(3)
+    for i, key in enumerate(["touch_thumb", "touch_index", "touch_pinky"]):
+        matched = [n for n in sim.model.sensor_names if n.endswith(key)]
+        if matched:
+            sid = sim.model.sensor_name2id(matched[0])
+            offset = int(np.sum(sim.model.sensor_dim[:sid]))
+            result[i] = sim.data.sensordata[offset]
+    return result
+
 
 # Create environment with OSC_POSE controller for precise end-effector control
 env = suite.make(
     env_name="Lift",
     robots="Jaco",
+    gripper_types="JacoThreeFingerTouchGripper",
     has_renderer=False,
     has_offscreen_renderer=True,
     use_camera_obs=True,
@@ -29,6 +44,7 @@ sensor_log = {
     'torque_mag': [],
     'force_x': [], 'force_y': [], 'force_z': [],
     'torque_x': [], 'torque_y': [], 'torque_z': [],
+    'touch_thumb': [], 'touch_index': [], 'touch_pinky': [],
     'gripper_width': [],
     'cube_height': [],
 }
@@ -67,6 +83,9 @@ for i in range(400):
     force = force_torque[0:3]
     torque = force_torque[3:6]
     force_mag = np.linalg.norm(force)
+
+    # Get per-finger touch sensor data
+    touch = _get_touch(env.sim)
 
     # Initialize action: [dx, dy, dz, droll, dpitch, dyaw, gripper]
     # For OSC_POSE: first 3 are position deltas, next 3 are rotation, last is gripper
@@ -175,6 +194,7 @@ for i in range(400):
         first_contact_step = i
         print(f"\n⚡ FIRST CONTACT DETECTED at step {i}!")
         print(f"   Force: {force_mag:.2f}N, Torque: {np.linalg.norm(torque):.3f}Nm")
+        print(f"   Touch: thumb={touch[0]:.2f}N  index={touch[1]:.2f}N  pinky={touch[2]:.2f}N")
         print(f"   Gripper width: {gripper_width:.3f}\n")
     elif not gripper_cube_contact:
         # Keep updating the last no-contact frame
@@ -192,6 +212,9 @@ for i in range(400):
     sensor_log['torque_x'].append(torque[0])
     sensor_log['torque_y'].append(torque[1])
     sensor_log['torque_z'].append(torque[2])
+    sensor_log['touch_thumb'].append(touch[0])
+    sensor_log['touch_index'].append(touch[1])
+    sensor_log['touch_pinky'].append(touch[2])
     sensor_log['gripper_width'].append(gripper_width)
     sensor_log['cube_height'].append(cube_pos[2])
 
@@ -200,6 +223,7 @@ for i in range(400):
         contact_str = "CONTACT" if gripper_cube_contact else "no-contact"
         print(f"Step {i:3d} | Phase: {phase:8s} | Dist: {distance:.3f}m | "
               f"Force: {force_mag:6.2f}N | Torque: {np.linalg.norm(torque):6.3f}Nm | "
+              f"Touch(T/I/P): {touch[0]:.2f}/{touch[1]:.2f}/{touch[2]:.2f}N | "
               f"Gripper: {gripper_width:6.3f} | Cube Z: {cube_pos[2]:.3f}m | {contact_str}")
 
     # Grab rendered frame
@@ -282,6 +306,23 @@ print(f"\n5. CONTACT STATISTICS:")
 print(f"   Total steps with contact: {contacts.sum()}/{len(contacts)} ({contact_percent:.1f}%)")
 print(f"   First contact at step: {first_contact_idx}")
 print(f"   Maintained contact: {'Yes ✓' if contacts[lift_start_idx:].all() else 'No ✗'}")
+
+# Per-finger touch sensor analysis
+touch_thumb = np.array(sensor_log['touch_thumb'])
+touch_index = np.array(sensor_log['touch_index'])
+touch_pinky = np.array(sensor_log['touch_pinky'])
+print(f"\n6. PER-FINGER TOUCH SENSORS:")
+if first_contact_idx > 0 and lift_start_idx > first_contact_idx:
+    grasp_slice = slice(first_contact_idx, lift_start_idx)
+    lift_slice = slice(lift_start_idx, len(steps))
+    for name, arr in [("Thumb", touch_thumb), ("Index", touch_index), ("Pinky", touch_pinky)]:
+        peak = arr.max()
+        grasp_mean = arr[grasp_slice].mean()
+        lift_mean = arr[lift_slice].mean()
+        print(f"   {name:5s}: peak={peak:.2f}N  during grasp={grasp_mean:.2f}N  during lift={lift_mean:.2f}N")
+else:
+    for name, arr in [("Thumb", touch_thumb), ("Index", touch_index), ("Pinky", touch_pinky)]:
+        print(f"   {name:5s}: peak={arr.max():.2f}N  mean={arr.mean():.2f}N")
 
 print("\n" + "="*80)
 print(f"✅ Saved video to reach_and_grasp.mp4")
