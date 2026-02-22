@@ -15,14 +15,16 @@ from envs.random_objects_env import RandomObjectsEnv
 from policies.random_movement import RandomMovementOnTable
 from policies.pick_and_lift import PickAndLift
 from policies.pick_and_lift_v2 import PickAndLiftV2
+from policies.sensor_aware_pick_and_lift import SensorAwarePickAndLift
 from data.saving import save_video
 
 TABLE_HEIGHT = 0.8  # z-position of table surface in RandomObjectsEnv
 
 POLICIES = {
-    "random":           lambda shape, objs: RandomMovementOnTable(action_shape=shape),
-    "pick_and_lift":    lambda shape, objs: PickAndLift(action_shape=shape, selected_objects=objs),
-    "pick_and_lift_v2": lambda shape, objs: PickAndLiftV2(action_shape=shape, selected_objects=objs),
+    "random":                    lambda shape, objs: RandomMovementOnTable(action_shape=shape),
+    "pick_and_lift":             lambda shape, objs: PickAndLift(action_shape=shape, selected_objects=objs),
+    "pick_and_lift_v2":          lambda shape, objs: PickAndLiftV2(action_shape=shape, selected_objects=objs),
+    "sensor_aware_pick_and_lift": lambda shape, objs: SensorAwarePickAndLift(action_shape=shape, selected_objects=objs),
 }
 
 
