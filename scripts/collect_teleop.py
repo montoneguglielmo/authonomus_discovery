@@ -47,7 +47,8 @@ def main():
         print("Use keyboard to control the robot. Press 'q' to end episode.")
         device.start_control()
         collect_episode(env, action_source, writer,
-                        num_steps=args.steps_per_episode, render=True)
+                        num_steps=args.steps_per_episode, render=True,
+                        enforce_timing=True)
 
     env.close()
     print("\nDone. Environment closed.")

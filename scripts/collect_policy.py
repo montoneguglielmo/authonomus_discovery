@@ -8,12 +8,18 @@ from envs.object_factory import create_random_objects
 from envs.random_objects_env import RandomObjectsEnv
 from policies.random_movement import RandomMovementOnTable
 from policies.pick_and_lift import PickAndLift
+from policies.sensor_aware_pick_and_lift import SensorAwarePickAndLift
+from policies.aligned_box_grasp import AlignedBoxGrasp
+from policies.push_off_table import PushOffTable
 from data.saving import EpisodeParquetWriter
 from data.collection import collect_episode
 
 POLICY_TASK_IDS = {
     "random": 0,
     "pick_and_lift": 1,
+    "sensor_aware_pick_and_lift": 2,
+    "aligned_box_grasp": 3,
+    "push_off_table": 4,
 }
 
 AVAILABLE_POLICIES = list(POLICY_TASK_IDS.keys())
@@ -39,6 +45,12 @@ def create_policy(policy_name, action_shape, selected_objects):
         return RandomMovementOnTable(action_shape=action_shape)
     elif policy_name == "pick_and_lift":
         return PickAndLift(action_shape=action_shape, selected_objects=selected_objects)
+    elif policy_name == "sensor_aware_pick_and_lift":
+        return SensorAwarePickAndLift(action_shape=action_shape, selected_objects=selected_objects)
+    elif policy_name == "aligned_box_grasp":
+        return AlignedBoxGrasp(action_shape=action_shape, selected_objects=selected_objects)
+    elif policy_name == "push_off_table":
+        return PushOffTable(action_shape=action_shape, selected_objects=selected_objects)
     else:
         raise ValueError(f"Unknown policy: {policy_name}")
 
@@ -47,7 +59,7 @@ def main():
     parser = argparse.ArgumentParser(description="Collect episodes with automated policies")
     parser.add_argument("--output_dir", type=str, required=True,
                         help="Root directory for output data")
-    parser.add_argument("--policy", choices=["random", "pick_and_lift", "all"],
+    parser.add_argument("--policy", choices=AVAILABLE_POLICIES + ["all"],
                         default="all")
     parser.add_argument("--num_episodes", type=int, default=1)
     parser.add_argument("--steps_per_episode", type=int, default=500)

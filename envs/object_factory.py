@@ -16,11 +16,17 @@ def restitution_to_solref(restitution, mass):
     """Convert coefficient of restitution (0-1) to MuJoCo solref (negative/direct format).
 
     Uses damped spring model: negative solref values are interpreted by MuJoCo
-    as direct -stiffness, -damping. The damping is derived from energy conservation:
-        b = 2 * sqrt(k * m) * ln(e) / pi
+    as direct -stiffness, -damping. Damping ratio zeta is derived from restitution
+    using the half-cycle log-decrement formula:
+        zeta = -ln(e) / sqrt(pi^2 + ln^2(e))
+    K is capped at 2e4 to avoid numerical instability (energy injection) at typical
+    MuJoCo timesteps. zeta is clamped >= 0.3 for the same reason.
     """
-    K = np.random.uniform(2e3, 2e5)
-    zeta = np.random.uniform(0.05, 1.5)
+    K = np.random.uniform(2e3, 2e4)
+    restitution = np.clip(restitution, 0.01, 0.99)
+    log_e = np.log(restitution)
+    zeta = -log_e / np.sqrt(np.pi**2 + log_e**2)
+    zeta = np.clip(zeta, 0.3, 2.0)
     B = 2 * zeta * np.sqrt(K * mass)
     return [-K, -B]
 
@@ -36,9 +42,9 @@ def random_contact_params(density, volume):
     mass = density * volume
     solref = restitution_to_solref(restitution, mass)
     solimp = [
-        np.random.uniform(0.7, 0.95),    # dmin
-        np.random.uniform(0.95, 0.9999),   # dmax
-        np.random.uniform(0.0005, 0.02)   # width
+        np.random.uniform(0.7, 0.9),     # dmin (kept strictly below dmax lower bound)
+        np.random.uniform(0.95, 0.9999), # dmax
+        np.random.uniform(0.0005, 0.02)  # width
     ]
     return friction, solref, solimp
 

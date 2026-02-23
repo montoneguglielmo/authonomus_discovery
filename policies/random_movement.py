@@ -22,6 +22,8 @@ class RandomMovementOnTable():
                     np.random.uniform(-0.7, 0.7),
                     self.height
                 ])
+                
+                self.kp_pos = np.random.uniform(0.5, 2)
 
             pos_error = self.target_pos - eef_pos
             action[0:3] = self.kp_pos * pos_error

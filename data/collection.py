@@ -57,7 +57,8 @@ class KeyboardActionSource:
 
 
 def collect_episode(env, action_source, writer, task_id=0, num_steps=500,
-                    settle_steps=20, control_freq=20, render=False):
+                    settle_steps=20, control_freq=20, render=False,
+                    enforce_timing=False):
     """
     Run one episode of data collection.
 
@@ -70,6 +71,8 @@ def collect_episode(env, action_source, writer, task_id=0, num_steps=500,
         settle_steps: zero-action steps to let physics settle
         control_freq: Hz for the control loop
         render: whether to call env.render() each step (needed for teleop GUI)
+        enforce_timing: if True, sleep to maintain the target control frequency
+                        (needed for teleoperation; skipped for faster policy collection)
     """
     obs = env.reset()
 
@@ -114,9 +117,10 @@ def collect_episode(env, action_source, writer, task_id=0, num_steps=500,
             if (i + 1) % 50 == 0:
                 print(f"  Step {i + 1}/{num_steps}")
 
-            elapsed = time.time() - step_start
-            if elapsed < target_dt:
-                time.sleep(target_dt - elapsed)
+            if enforce_timing:
+                elapsed = time.time() - step_start
+                if elapsed < target_dt:
+                    time.sleep(target_dt - elapsed)
 
     except EpisodeReset:
         print("Episode ended early by user reset.")

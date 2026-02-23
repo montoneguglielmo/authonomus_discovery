@@ -14,8 +14,9 @@ from envs.object_factory import create_random_objects
 from envs.random_objects_env import RandomObjectsEnv
 from policies.random_movement import RandomMovementOnTable
 from policies.pick_and_lift import PickAndLift
-from policies.pick_and_lift_v2 import PickAndLiftV2
 from policies.sensor_aware_pick_and_lift import SensorAwarePickAndLift
+from policies.aligned_box_grasp import AlignedBoxGrasp
+from policies.push_off_table import PushOffTable
 from data.saving import save_video
 
 TABLE_HEIGHT = 0.8  # z-position of table surface in RandomObjectsEnv
@@ -23,8 +24,9 @@ TABLE_HEIGHT = 0.8  # z-position of table surface in RandomObjectsEnv
 POLICIES = {
     "random":                    lambda shape, objs: RandomMovementOnTable(action_shape=shape),
     "pick_and_lift":             lambda shape, objs: PickAndLift(action_shape=shape, selected_objects=objs),
-    "pick_and_lift_v2":          lambda shape, objs: PickAndLiftV2(action_shape=shape, selected_objects=objs),
     "sensor_aware_pick_and_lift": lambda shape, objs: SensorAwarePickAndLift(action_shape=shape, selected_objects=objs),
+    "aligned_box_grasp":          lambda shape, objs: AlignedBoxGrasp(action_shape=shape, selected_objects=objs),
+    "push_off_table":             lambda shape, objs: PushOffTable(action_shape=shape, selected_objects=objs),
 }
 
 
@@ -60,8 +62,19 @@ def metric_object_above_table(object_positions, threshold):
     return any(pos[2] > TABLE_HEIGHT + threshold for pos in object_positions.values())
 
 
+def metric_object_off_table(object_positions, threshold):
+    """True if any object has fallen off the table.
+
+    An object is considered off the table when its z-coordinate drops more than
+    `threshold` metres below the table surface (default 0.2 m gives z < 0.6 m,
+    safely below any resting-on-table height and well above the floor).
+    """
+    return any(pos[2] < TABLE_HEIGHT - threshold for pos in object_positions.values())
+
+
 METRICS = {
     "object_above_table": metric_object_above_table,
+    "object_off_table":   metric_object_off_table,
 }
 
 
@@ -203,7 +216,7 @@ def evaluate(policy_name, num_episodes, steps_per_episode, metric_name,
 def main():
     parser = argparse.ArgumentParser(description="Evaluate a policy over N episodes")
     parser.add_argument("--policy", choices=list(POLICIES.keys()),
-                        default="pick_and_lift_v2",
+                        default="pick_and_lift",
                         help="Policy to evaluate")
     parser.add_argument("--num_episodes", type=int, default=10,
                         help="Number of episodes (default: 10)")
